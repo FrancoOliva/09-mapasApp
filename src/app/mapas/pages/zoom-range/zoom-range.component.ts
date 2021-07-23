@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, ElementRef,  ViewChild } from '@angular/core';
+import { AfterViewInit, Component, ElementRef,  OnDestroy,  ViewChild } from '@angular/core';
 import * as mapboxgl from 'mapbox-gl';
 
 @Component({
@@ -23,17 +23,27 @@ import * as mapboxgl from 'mapbox-gl';
     `
   ]
 })
-export class ZoomRangeComponent implements AfterViewInit {
+export class ZoomRangeComponent implements AfterViewInit, OnDestroy {
 
   // Necesario para poder controlar el zoom en nuestro mapa
   // ViewChild nos permite hacer referencia a un elemento html
   @ViewChild('mapa') divMapa!: ElementRef;
   mapa!: mapboxgl.Map;
 
-  zoomLevel: number = 10;
+  zoomLevel: number = 14;
+
+  // longitud y latitud
+  center: [number,number] = [ -60.6570097548917, -32.95735416477163 ];
 
   constructor() { 
     
+  }
+
+  ngOnDestroy(): void {
+    // REGLA DE ORO: CUANDO UTILIZAMOS EVENTOS TENEMOS QUE LIMPIARLOS/DESTRUIRLOS ANTES DE CAMBIAR DE COMPONENTES, ETC
+    this.mapa.off('zoom', () => {});
+    this.mapa.off('zoomend', () => {});
+    this.mapa.off('move', () => {});
   }
 
   ngAfterViewInit(): void {
@@ -43,7 +53,7 @@ export class ZoomRangeComponent implements AfterViewInit {
     this.mapa = new mapboxgl.Map({
       container: this.divMapa.nativeElement,
       style: 'mapbox://styles/mapbox/streets-v11',
-      center: [ -60.6570097548917, -32.95735416477163 ], // mapBox -> Longitud/Latitud    GoogleMaps -> Latitud/Longitud
+      center: this.center, // mapBox -> Longitud/Latitud    GoogleMaps -> Latitud/Longitud
       zoom: this.zoomLevel
     });
 
@@ -57,6 +67,20 @@ export class ZoomRangeComponent implements AfterViewInit {
         this.mapa.zoomTo( 18 );
       }
     });
+
+    // Escuchar movimiento del mapa
+    this.mapa.on('move', (event)=>{
+
+      const target = event.target;
+      //console.log(target.getCenter());
+
+      // Desestructuración del event.target
+      const { lng, lat } = target.getCenter();
+
+      this.center = [ lng, lat ];
+
+      
+    })
     
   }
 
